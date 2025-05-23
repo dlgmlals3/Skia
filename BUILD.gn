@@ -3270,6 +3270,19 @@ if (skia_enable_tools) {
     }
   }
 
+  executable("dlgmlals3_Test") {
+    sources = [
+      "example/TestX11.cpp",
+      "example/testApi/SkSurfaceTest.cpp",
+    ]
+    deps = [
+      ":skia",
+    ]
+    libs = [
+      "X11",
+    ]
+  }
+
   if (is_ios && skia_use_metal && skia_enable_ganesh) {
     group("minimal_ios_mtl_skia_app") {
       deps = [ "experimental/minimal_ios_mtl_skia_app" ]
@@ -3287,6 +3300,8 @@ if (skia_enable_tools) {
     sources = [ "tools/image_diff_metric.cpp" ]
     deps = [ ":skia" ]
   }
+
+
 
   group("modules_testonly") {
     testonly = true
