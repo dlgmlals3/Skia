@@ -166,30 +166,42 @@ void SkSurfaceTestDraw(SkCanvas* canvasReal) {
     }
 }
 */
-
+#include "include/gpu/ganesh/GrDirectContext.h"
+#include "include/gpu/ganesh/SkSurfaceGanesh.h"
+#include "include/gpu/ganesh/gl/GrGLDirectContext.h"
+#include "include/gpu/ganesh/gl/GrGLInterface.h"
 // WrapPixels가 
-void SkSurfaceTestDraw(SkCanvas*) {
-    SkImageInfo info = SkImageInfo::MakeN32Premul(3, 3);
-    const size_t size = info.computeMinByteSize();
-    SkDebugf("real size : %ld\n", size);
 
-    //SkPMColor* pixels = new SkPMColor[size];
-    SkPMColor* pixels = reinterpret_cast<SkPMColor*>(malloc(size));
+
+void SkSurfaceTestDraw(SkCanvas*) {
+    sk_sp<GrDirectContext> ctx = GrDirectContexts::MakeGL();
     
-    sk_sp<SkSurface> surface(SkSurfaces::WrapPixels(info, pixels, info.minRowBytes()));
+    if (!ctx) {
+        printf("Could not make GrDirectContext\n");
+        return;
+    }
+    printf("Context made, now to make the surface\n");
+
+    SkImageInfo imageInfo =
+            SkImageInfo::Make(200, 400, kRGBA_8888_SkColorType, kPremul_SkAlphaType);
+    
+    sk_sp<SkSurface> surface =
+            SkSurfaces::RenderTarget(ctx.get(), skgpu::Budgeted::kYes, imageInfo);
+    
+    if (!surface) {
+        printf("Could not make surface from GL DirectContext\n");
+        return;
+    }
+    /*
 
     SkCanvas* canvas = surface->getCanvas();
-    canvas->clear(SK_ColorWHITE);
-    SkPMColor pmWhite = pixels[0];
-    SkPaint paint;
-    canvas->drawPoint(1, 1, paint);
+    canvas->clear(SK_ColorRED);
+    SkRRect rrect = SkRRect::MakeRectXY(SkRect::MakeLTRB(10, 20, 50, 70), 10, 10);
 
-    for (int y = 0; y < info.height(); ++y) {
-        for (int x = 0; x < info.width(); ++x) {
-            SkDebugf("%c", *pixels++ == pmWhite ? '-' : 'x');
-        }
-        SkDebugf("\n");
-    }
-    //delete[] pixels;
-    free(pixels);
+    SkPaint paint;
+    paint.setColor(SK_ColorBLUE);
+    paint.setAntiAlias(true);
+
+    canvas->drawRRect(rrect, paint);
+    */
 }
