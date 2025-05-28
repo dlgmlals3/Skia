@@ -22,6 +22,44 @@
 #include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
 #include "src/gpu/ganesh/gl/GrGLDefines.h"
 #include "include/gpu/ganesh/gl/glx/GrGLMakeGLXInterface.h"
+#include "src/core/SkStreamPriv.h"
+#include "tools/Resources.h" // GetResourceAsData
+
+void DrawImage(SkCanvas* canvas, sk_sp<SkImage> image) {
+    canvas->clear(SK_ColorWHITE);
+    canvas->drawImage(image, 50, 50);
+}
+
+void RenderImageToGpuCanvas(SkCanvas* canvas, const char* imagePath) {
+    std::unique_ptr<SkStreamAsset> stream(SkStream::MakeFromFile(imagePath));
+    if (!stream) {
+        fprintf(stderr, "Failed to open image file: %s\n", imagePath);
+        return;
+    }
+    sk_sp<SkData> encoded = SkData::MakeFromStream(stream.get(), stream->getLength());
+    sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(encoded, kPremul_SkAlphaType);
+    if (!image) {
+        printf("Failed to decode image.\n");
+        return;
+    }
+    DrawImage(canvas, image);
+}
+
+void Draw(SkCanvas *canvas) {
+    printf("dlgmlals3 Draw Images");      
+    auto data = GetResourceAsData("images/ducky.jpg");  
+    sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data, kPremul_SkAlphaType);
+    DrawImage(canvas, image);
+}
+
+void DrawSquare(SkCanvas* canvas) {
+    SkPaint paint;
+    paint.setColor(SK_ColorBLUE);
+    paint.setStyle(SkPaint::kFill_Style);
+    
+    SkRect rect = SkRect::MakeXYWH(100, 100, 200, 200);
+    canvas->drawRect(rect, paint);
+}
 
 int main() {
     SkGraphics::Init();
@@ -62,33 +100,33 @@ int main() {
     GLXContext glctx = glXCreateContext(display, vi, nullptr, GL_TRUE);
     glXMakeCurrent(display, win, glctx);
 
-    // Skia용 BackendRenderTarget 생성
+    
     int width = 800;
     int height = 600;
 
     GrGLFramebufferInfo info;
-    sk_sp<SkColorSpace> colorSpace = SkColorSpace::MakeSRGB();        
-
     info.fFBOID = 0; // 기본 FBO (보통 X11, EGL 등에서)
     info.fFormat = GR_GL_RGBA8;
     int sampleCnt = 0; // No multisampling
     int stencil = 8;   // 8 bits stencil buffer
 
-    // Create GrBackendRenderTarget for Skia
+    // Skia용 BackendRenderTarget 생성
     auto target = GrBackendRenderTargets::MakeGL(width, height, sampleCnt, stencil, info);
     sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
     if (!interface) {
         fprintf(stderr, "GrGLMakeNativeInterface failed\n");
         return -1;
     }
+
+    // Skia용 컨텍스트 생성
     sk_sp<GrDirectContext> fContext = GrDirectContexts::MakeGL(interface);
     if (!fContext) {
         fprintf(stderr, "GrDirectContext::MakeGL failed\n");
         return -1;
     }
-    //auto fContext = GrDirectContexts::MakeGL(fBackendContext, fDisplayParams->grContextOptions());
 
     // Create SkSurface
+    sk_sp<SkColorSpace> colorSpace = SkColorSpace::MakeSRGB();        
     sk_sp<SkSurface> surface(SkSurfaces::WrapBackendRenderTarget(fContext.get(),
                                                                 target,
                                                                 kBottomLeft_GrSurfaceOrigin,
@@ -96,16 +134,9 @@ int main() {
                                                                 colorSpace,
                                                                 nullptr));
 
-    SkCanvas* canvas = surface->getCanvas();
-    canvas->clear(SK_ColorRED);
-    SkRRect rrect = SkRRect::MakeRectXY(SkRect::MakeLTRB(10, 20, 50, 70), 10, 10);
+    Draw(surface->getCanvas());
 
-    SkPaint paint;
-    paint.setColor(SK_ColorBLUE);
-    paint.setAntiAlias(true);
-
-    canvas->drawRRect(rrect, paint);
-
+    // Flush
     fContext->flush();
     fContext->submit();    
     glXSwapBuffers(display, win);
@@ -127,75 +158,5 @@ int main() {
     XDestroyWindow(display, win);
     XCloseDisplay(display);
     SkGraphics::PurgeAllCaches();
-
-    /*
-    // Skia GL 인터페이스 & 컨텍스트 생성
-    sk_sp<const GrGLInterface> interface = GrGLMakeNativeInterface();
-    if (!interface) {
-        fprintf(stderr, "GrGLMakeNativeInterface failed\n");
-        return -1;
-    }
-
-    sk_sp<GrDirectContext> grCtx = GrDirectContexts::MakeGL(interface);
-    if (!grCtx) {
-        fprintf(stderr, "GrDirectContexts::MakeGL failed\n");
-        return -1;
-    }
-
-    // Skia용 BackendRenderTarget 생성
-    int width = 800;
-    int height = 600;
-
-    GrGLFramebufferInfo info;
-    sk_sp<SkColorSpace> colorSpace = SkColorSpace::MakeSRGB();        
-
-    info.fFBOID = 0; // 기본 FBO (보통 X11, EGL 등에서)
-    info.fFormat = GR_GL_RGBA8;
-    int sampleCnt = 0; // No multisampling
-    int stencil = 8;   // 8 bits stencil buffer
-
-    // Create GrBackendRenderTarget for Skia
-    auto target = GrBackendRenderTargets::MakeGL(width, height, sampleCnt, stencil, info);
-
-
-    // Create SkSurface
-    sk_sp<SkSurface> surface(SkSurfaces::WrapBackendRenderTarget(grCtx.get(),
-                                                                target,
-                                                                kBottomLeft_GrSurfaceOrigin,
-                                                                kRGBA_8888_SkColorType,
-                                                                colorSpace,
-                                                                nullptr));
-
-    // Skia draw
-    SkCanvas* canvas = surface->getCanvas();
-    canvas->clear(SK_ColorWHITE);
-
-    SkPaint paint;
-    paint.setColor(SK_ColorBLUE);
-    paint.setAntiAlias(true);
-    canvas->drawCircle(400, 300, 100, paint);
-
-    //surface->flush();
-    grCtx->submit();
-    glXSwapBuffers(display, win);
-
-    // X11 이벤트 루프
-    bool running = true;
-    while (running) {
-        XEvent event;
-        XNextEvent(display, &event);
-        if (event.type == KeyPress) {
-            running = false;
-        }
-    }
-
-    // 정리
-    grCtx.reset();
-    glXMakeCurrent(display, None, nullptr);
-    glXDestroyContext(display, glctx);
-    XDestroyWindow(display, win);
-    XCloseDisplay(display);
-    SkGraphics::PurgeAllCaches();
-    */
     return 0;
 }

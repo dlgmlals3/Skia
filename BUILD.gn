@@ -3271,9 +3271,16 @@ if (skia_enable_tools) {
   }
 
   executable("dlgmlals3_Test") {
+    testonly = true  # ← 이 줄 추가!
     sources = [
       "example/TestX11.cpp",
-      "example/testApi/SkSurfaceTest.cpp",
+      "tools/Resources.cpp",
+      "tools/ToolUtils.cpp",
+      "tools/flags/CommandLineFlags.cpp",
+    ]
+    include_dirs = [
+      "tools",
+      "tools/flags"
     ]
     deps = [
       ":skia",
