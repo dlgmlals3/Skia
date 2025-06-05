@@ -1,36 +1,32 @@
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <GL/gl.h>
-#include <GL/glx.h>
-#include <cstdio>
+#include "TestLibrary.h" // SkSurfaces::WrapBackendRenderTarget, SkImages::DeferredFromEncodedData
+#include "SaveLayerTest.h" // SaveLayerTest
 
-#include "include/core/SkCanvas.h"
-#include "include/core/SkColor.h"
-#include "include/core/SkGraphics.h"
-#include "include/core/SkPaint.h"
-#include "include/core/SkSurface.h"
-#include "include/core/SkRRect.h"
-
-#include "include/gpu/ganesh/GrBackendSurface.h"
-#include "include/gpu/ganesh/GrDirectContext.h"
-#include "include/gpu/ganesh/SkSurfaceGanesh.h"
-#include "include/gpu/ganesh/gl/GrGLDirectContext.h"
-
-#include "include/gpu/ganesh/gl/GrGLInterface.h"
-#include "include/gpu/ganesh/gl/GrGLTypes.h"
-#include "include/core/SkColorSpace.h"
-#include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
-#include "src/gpu/ganesh/gl/GrGLDefines.h"
-#include "include/gpu/ganesh/gl/glx/GrGLMakeGLXInterface.h"
-#include "src/core/SkStreamPriv.h"
-#include "tools/Resources.h" // GetResourceAsData
-
-void DrawImage(SkCanvas* canvas, sk_sp<SkImage> image) {
+void TestLibrary::Draw(SkCanvas *canvas) {
+    printf("dlgmlals3 Draw Images");      
     canvas->clear(SK_ColorWHITE);
-    canvas->drawImage(image, 50, 50);
 }
 
-void RenderImageToGpuCanvas(SkCanvas* canvas, const char* imagePath) {
+void TestLibrary::ImageRenderDrawTest(SkCanvas *canvas) {
+    printf("dlgmlals3 Draw Images");      
+    canvas->clear(SK_ColorWHITE);
+
+    // 첫 번째 이미지 로드 및 그리기 (배경)
+    auto bgData = GetResourceAsData("images/ducky.jpg");
+    sk_sp<SkImage> bgImage = SkImages::DeferredFromEncodedData(bgData, kPremul_SkAlphaType);
+    //canvas->drawImage(bgImage, 0, 0);
+
+    auto data = GetResourceAsData("images/dog.jpg");  
+    SkPaint paint;
+    paint.setAlphaf(1.0f);
+    paint.setBlendMode(SkBlendMode::kSrc); 
+    //paint.setBlendMode(SkBlendMode::kSrcOver); 
+    sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data, kPremul_SkAlphaType);
+    sk_sp<SkImageFilter> blurFilter = SkImageFilters::Blur(10.0f, 10.0f, nullptr);
+    paint.setImageFilter(blurFilter);
+    canvas->drawImage(image, 50, 50, SkSamplingOptions(), &paint);
+}
+
+void TestLibrary::RenderImageToGpuCanvas(SkCanvas* canvas, const char* imagePath) {
     std::unique_ptr<SkStreamAsset> stream(SkStream::MakeFromFile(imagePath));
     if (!stream) {
         fprintf(stderr, "Failed to open image file: %s\n", imagePath);
@@ -42,23 +38,38 @@ void RenderImageToGpuCanvas(SkCanvas* canvas, const char* imagePath) {
         printf("Failed to decode image.\n");
         return;
     }
-    DrawImage(canvas, image);
+    canvas->drawImage(image, 0, 0);
 }
 
-void Draw(SkCanvas *canvas) {
-    printf("dlgmlals3 Draw Images");      
-    auto data = GetResourceAsData("images/ducky.jpg");  
-    sk_sp<SkImage> image = SkImages::DeferredFromEncodedData(data, kPremul_SkAlphaType);
-    DrawImage(canvas, image);
-}
-
-void DrawSquare(SkCanvas* canvas) {
+void TestLibrary::DrawSquare(SkCanvas* canvas) {
     SkPaint paint;
     paint.setColor(SK_ColorBLUE);
     paint.setStyle(SkPaint::kFill_Style);
     
     SkRect rect = SkRect::MakeXYWH(100, 100, 200, 200);
     canvas->drawRect(rect, paint);
+}
+
+void TestLibrary::SaveSkp(sk_sp<SkPicture> picture, const char* filename) {
+    sk_sp<SkData> data = picture->serialize();
+    if (data) {
+        SkFILEWStream stream(filename);
+        stream.write(data->data(), data->size());
+    }
+}
+
+TestLibrary testLib;
+SaveLayerTest saveLayer;
+void TestLibrary::TestFunc(int width, int height, sk_sp<SkSurface> surface) {
+    if (RENDERING == 1) {
+        testLib.Draw(surface->getCanvas());
+    } else {
+        SkPictureRecorder recorder;
+        SkCanvas* canvas = recorder.beginRecording(SkRect::MakeWH(width, height));
+        saveLayer.Draw(canvas);
+        sk_sp<SkPicture> picture = recorder.finishRecordingAsPicture();
+        testLib.SaveSkp(picture, "output.skp");
+    }
 }
 
 int main() {
@@ -134,7 +145,7 @@ int main() {
                                                                 colorSpace,
                                                                 nullptr));
 
-    Draw(surface->getCanvas());
+    testLib.TestFunc(width, height, surface);
 
     // Flush
     fContext->flush();
