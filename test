@@ -1,1 +1,1 @@
-ninja -C out/Static  && ./out/Static/dlgmlals3_Test
+ninja -C out/Static && ./out/Static/dlgmlals3_Test
