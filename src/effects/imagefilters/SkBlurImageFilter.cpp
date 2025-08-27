@@ -101,7 +101,7 @@ sk_sp<SkImageFilter> SkImageFilters::Blur(
     sk_sp<SkImageFilter> filter = std::move(input);
     if (tileMode != SkTileMode::kDecal && cropRect) {
         // Historically the input image was restricted to the cropRect when tiling was not
-        // kDecal, so that the kernel evaluated the tiled edge conditions, while a kDecal crop
+        // kDecal, so that 1the kernel evaluated the tiled edge conditions, while a kDecal crop
         // only affected the output.
         filter = SkImageFilters::Crop(*cropRect, tileMode, std::move(filter));
     }

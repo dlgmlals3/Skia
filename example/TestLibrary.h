@@ -36,7 +36,11 @@
 
 #include "tools/Resources.h" // GetResourceAsData
 
-#define RENDERING 0
+#define RENDERING 1
+#define DRAW_CONTEXT 2
+
+int testType = DRAW_CONTEXT;
+
 std::string skpPath = "skp/saveLayerTest.skp";
 
 class TestLibrary {
@@ -96,7 +100,7 @@ public:
     void RenderImageToGpuCanvas(SkCanvas* canvas, const char* imagePath);
     void DrawSquare(SkCanvas* canvas);
     void TestFunc(int width, int height, sk_sp<SkSurface> surface);
-
+    void TestContext(SkCanvas *canvas);
 
 };
 #endif

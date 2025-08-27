@@ -5,10 +5,12 @@ public:
     // 레이어를 사용한 배경 흐림 처리 및 자식 뷰 렌더링 테스트
     // 22 라인을 canvas->restore() 34라인에 넣게 되면 
     // 하나의 프레임버퍼에 그려지기 때문에 전체 화면이 흐려지게 된다.
-    void Draw(SkCanvas *canvas) {
+    void SaveLayerDraw(SkCanvas *canvas) {
         printf("dlgmlals3 SaveLayerTest");
         canvas->clear(SK_ColorBLACK);
         // 최상위 레이어 (배경 흐림 처리용) ====
+        int width = 500;
+        int height = 500;
         SkPaint blurLayerPaint;
         blurLayerPaint.setImageFilter(SkImageFilters::Blur(10, 10, nullptr));
         canvas->saveLayer(nullptr, &blurLayerPaint);
@@ -17,7 +19,7 @@ public:
             auto bgData = GetResourceAsData("images/ducky.jpg");
             sk_sp<SkImage> bgImage = SkImages::DeferredFromEncodedData(bgData, kPremul_SkAlphaType);
             // Clipping 적용
-            canvas->clipRect(SkRect::MakeXYWH(0, 0, 200, 200));        
+            canvas->clipRect(SkRect::MakeXYWH(0, 0, width, height));        
             canvas->drawImage(bgImage, 0, 0);
         }
         canvas->restore();
@@ -34,6 +36,30 @@ public:
         }
         canvas->restore();    
     }
+
+    void Draw(SkCanvas *canvas) {
+        printf("dlgmlals3 Draw");
+        canvas->clear(SK_ColorBLACK);
+        // 최상위 레이어 (배경 흐림 처리용) ====
+        int width = 1000;
+        int height = 1000;
+        SkPaint blurLayerPaint;
+        blurLayerPaint.setImageFilter(SkImageFilters::Blur(5, 5, nullptr));
+        canvas->saveLayer(nullptr, &blurLayerPaint);
+        {
+            // 새로운 레이어로 배경 그리기
+            auto bgData = GetResourceAsData("images/ducky.jpg");
+            sk_sp<SkImage> bgImage = SkImages::DeferredFromEncodedData(bgData, kPremul_SkAlphaType);
+            // Clipping 적용
+            canvas->clipRect(SkRect::MakeXYWH(0, 0, width, height));        
+            canvas->drawImage(bgImage, 0, 0);
+        }
+       
+       
+       
+        canvas->restore();
+    }
+
 
     // docker cp d444d342a10f:/workspace/Skia/skp/saveLayerTest.skp /Share/
     void DrawHWLayer(SkCanvas *canvas) {

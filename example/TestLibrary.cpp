@@ -1,6 +1,18 @@
 #include "TestLibrary.h" // SkSurfaces::WrapBackendRenderTarget, SkImages::DeferredFromEncodedData
 #include "SaveLayerTest.h" // SaveLayerTest
 
+#include "include/core/SkCanvas.h"
+#include "include/core/SkImage.h"
+#include "include/core/SkSurface.h"
+//#include "src/gpu/ganesh/SurfaceDrawContext.h"
+#include "include/core/SkBitmap.h"
+
+#include <memory>
+
+class GrRecordingContext;
+struct GrContextOptions;
+
+
 void TestLibrary::Draw(SkCanvas *canvas) {
     printf("dlgmlals3 Draw Images");      
     canvas->clear(SK_ColorWHITE);
@@ -58,14 +70,36 @@ void TestLibrary::SaveSkp(sk_sp<SkPicture> picture, const char* filename) {
     }
 }
 
+// https://github.com/google/skia/blob/main/docs/examples/Anti_Alias.cpp
+void TestLibrary::TestContext(SkCanvas *canvas) {
+    // printf("dlgmlals3 TestContext\n");  
+    // printf("Backend : %u\n", sContext->backend());
+    // printf("Abndoned : %d\n", sContext->abandoned());
+    // printf("Resource cache limit %lu\n", sContext->getResourceCacheLimit());
+    SkBitmap bitmap;
+    bitmap.allocN32Pixels(50, 50, true);
+    SkCanvas offscreen(bitmap);
+    SkPaint paint;
+    paint.setStyle(SkPaint::kStroke_Style);
+    paint.setStrokeWidth(10);    
+    for (bool antiAlias : {false, true}) {
+        paint.setColor(antiAlias ? SK_ColorGREEN : SK_ColorRED);
+        paint.setAntiAlias(antiAlias);
+        canvas->drawLine(5, 5, 15, 30, paint);        
+    } 
+}
+
 void TestLibrary::TestFunc(int width, int height, sk_sp<SkSurface> surface) {
     SaveLayerTest saveLayer;
-    if (RENDERING == 1) {
+    if (testType == RENDERING) {
         saveLayer.Draw(surface->getCanvas());
+    } else if (testType == DRAW_CONTEXT) {
+        TestContext(surface->getCanvas());
+        
     } else {
         SkPictureRecorder recorder;
         SkCanvas* canvas = recorder.beginRecording(SkRect::MakeWH(width, height));
-        saveLayer.DrawHWLayer(canvas);
+        saveLayer.Draw(canvas);
         sk_sp<SkPicture> picture = recorder.finishRecordingAsPicture();
         SaveSkp(picture, skpPath.c_str());
     }
@@ -146,3 +180,4 @@ int main() {
     SkGraphics::PurgeAllCaches();
     return 0;
 }
+//}
