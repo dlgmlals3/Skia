@@ -70,32 +70,21 @@ void TestLibrary::SaveSkp(sk_sp<SkPicture> picture, const char* filename) {
     }
 }
 
-// https://github.com/google/skia/blob/main/docs/examples/Anti_Alias.cpp
-void TestLibrary::TestContext(SkCanvas *canvas) {
-    // printf("dlgmlals3 TestContext\n");  
-    // printf("Backend : %u\n", sContext->backend());
-    // printf("Abndoned : %d\n", sContext->abandoned());
-    // printf("Resource cache limit %lu\n", sContext->getResourceCacheLimit());
-    SkBitmap bitmap;
-    bitmap.allocN32Pixels(50, 50, true);
-    SkCanvas offscreen(bitmap);
-    SkPaint paint;
-    paint.setStyle(SkPaint::kStroke_Style);
-    paint.setStrokeWidth(10);    
-    for (bool antiAlias : {false, true}) {
-        paint.setColor(antiAlias ? SK_ColorGREEN : SK_ColorRED);
-        paint.setAntiAlias(antiAlias);
-        canvas->drawLine(5, 5, 15, 30, paint);        
-    } 
-}
 
 void TestLibrary::TestFunc(int width, int height, sk_sp<SkSurface> surface) {
     SaveLayerTest saveLayer;
     if (testType == RENDERING) {
         saveLayer.Draw(surface->getCanvas());
     } else if (testType == DRAW_CONTEXT) {
-        TestContext(surface->getCanvas());
-        
+        //DrawLineTest(surface->getCanvas());
+        //BitmapTest(surface->getCanvas());
+        //BitmapTest2(surface->getCanvas());
+        //BitmapTest3(surface->getCanvas());
+        //BitmapTest4(surface->getCanvas());
+        //BitmapTest5(surface->getCanvas());
+        //BitmapTest6(surface->getCanvas());
+        BitmapTest7(surface->getCanvas());
+
     } else {
         SkPictureRecorder recorder;
         SkCanvas* canvas = recorder.beginRecording(SkRect::MakeWH(width, height));
@@ -181,3 +170,34 @@ int main() {
     return 0;
 }
 //}
+
+
+
+// https://github.com/google/skia/blob/main/docs/examples/Anti_Alias.cpp
+void TestLibrary::DrawLineText(SkCanvas *canvas) {
+    // printf("dlgmlals3 TestContext\n");  
+    // printf("Backend : %u\n", sContext->backend());
+    // printf("Abndoned : %d\n", sContext->abandoned());
+    // printf("Resource cache limit %lu\n", sContext->getResourceCacheLimit());
+    SkBitmap bitmap;
+    bitmap.allocN32Pixels(50, 50, true);
+    SkCanvas offscreen(bitmap);
+    SkPaint paint;
+    paint.setStyle(SkPaint::kStroke_Style);
+    paint.setStrokeWidth(10);    
+    paint.setStrokeCap(SkPaint::kRound_Cap);
+
+    for (bool antiAlias : {false, true}) {
+        paint.setColor(antiAlias ? SK_ColorGREEN : SK_ColorRED);
+        paint.setAntiAlias(antiAlias);       
+        bitmap.eraseColor(0);
+        offscreen.drawLine(5, 5, 15, 30, paint);
+        canvas->drawLine(5, 5, 15, 30, paint);           
+        canvas->save();
+        canvas->scale(5, 5);                
+        canvas->drawImage(bitmap.asImage(), 10, 0);
+        canvas->restore();
+        canvas->translate(300, 0);
+    } 
+}
+
