@@ -116,12 +116,49 @@ public:
         return bitmap;
     }
 
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_extractAlpha.cpp
+    void BitmapAlphaTest(SkCanvas *canvas) {
+        SkBitmap alpha, bitmap;
+        bitmap.allocN32Pixels(100, 100);
+        // rgba를 모두 0으로 초기화
+        SkCanvas offscreen(bitmap);
+        SkPaint paint;
+        paint.setAntiAlias(true);
+        paint.setColor(SK_ColorBLUE);
+        paint.setStrokeWidth(20);
+        offscreen.drawCircle(50, 50, 40, paint);
+        // 이때 원만 알파가 1로 채워짐.
+        
+        bitmap.extractAlpha(&alpha);        
+        paint.setColor(SK_ColorRED);
+        canvas->drawImage(bitmap.asImage(), 0, 0, SkSamplingOptions(), &paint);
+        canvas->drawImage(alpha.asImage(), 100, 0, SkSamplingOptions(), &paint);
+    }
+
     // https://github.com/google/skia/blob/main/docs/examples/Bitmap_dimensions.cpp
     void BitmapTest9(SkCanvas *canvas) {
+        SkBitmap bitmap;
+        bitmap.setInfo(SkImageInfo::MakeN32(2, 2, kPremul_SkAlphaType));
+        SkISize dimension = bitmap.dimensions();
+        SkRect rect;
+        bitmap.getBounds(&rect);
+        SkRect dimensionAsBound = SkRect::Make(dimension);
+        SkDebugf("dimensionAsBound %c=bounds\n", dimensionAsBound == rect ? '=' : '!');
+        SkDebugf("bounds : %f %f %f %f", rect.fLeft, rect.fTop, rect.fRight, rect.fBottom);
     }
+
 
     // https://github.com/google/skia/blob/main/docs/examples/Bitmap_copy_operator.cpp  
     void BitmapTest8(SkCanvas *canvas) {
+        SkBitmap bitmap;
+        sk_sp<SkColorSpace> cs= SkColorSpace::MakeSRGB();
+        SkImageInfo info = SkImageInfo::Make(2, 2, kRGBA_8888_SkColorType, kOpaque_SkAlphaType);
+        SkImageInfo info2 = SkImageInfo::MakeN32(2, 2, kOpaque_SkAlphaType , SkColorSpace::MakeSRGB());
+        bitmap.tryAllocPixels(info);
+        SkBitmap copy = bitmap;;
+
+        SkDebugf("original has pixels after copy : %s\n", bitmap.getPixels() ? "true" : "false");
+        SkDebugf("copy has pixels : %s\n", copy.getPixels() ? "true" : "false");    
     }
 
     void BitmapTest7(SkCanvas *canvas) {
