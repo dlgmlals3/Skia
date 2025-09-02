@@ -19,7 +19,9 @@
 #include "include/core/SkTypeface.h"
 #include "include/core/SkFontMgr.h"
 #include "include/core/SkBitmap.h"
-
+#include "include/core/SkMaskFilter.h"
+#include "include/core/SkBlurTypes.h"
+#include "include/core/SkRect.h"
 #include "include/gpu/ganesh/gl/glx/GrGLMakeGLXInterface.h"
 #include "include/gpu/ganesh/GrBackendSurface.h"
 #include "include/gpu/ganesh/GrDirectContext.h"
@@ -30,6 +32,7 @@
 #include "include/gpu/ganesh/gl/GrGLBackendSurface.h"
 
 #include "include/effects/SkImageFilters.h"
+
 
 #include "src/gpu/ganesh/gl/GrGLDefines.h"
 #include "src/core/SkStreamPriv.h"
@@ -103,6 +106,13 @@ public:
     void DrawLineText(SkCanvas *canvas);
     // Bitmap_drawsNothing.cpp
 
+    sk_sp<SkImage> getImage() {    
+        // 첫 번째 이미지 로드 및 그리기 (배경)
+        auto bgData = GetResourceAsData("images/ducky.jpg");
+        sk_sp<SkImage> bgImage = SkImages::DeferredFromEncodedData(bgData, kPremul_SkAlphaType);
+        return bgImage;
+    }
+
     SkBitmap getBitmap(SkCanvas *canvas) {
         SkBitmap bitmap;
         bitmap.allocPixels(SkImageInfo::MakeN32(2, 2, kPremul_SkAlphaType));
@@ -115,6 +125,63 @@ public:
         //canvas->drawImage(bitmap.asImage(), 0, 0);
         return bitmap;
     }
+    
+    void Bitmap_extractAlpha3(SkCanvas *canvas) {
+        SkBitmap alpha, bitmap;
+        bitmap.allocN32Pixels(200, 200);
+        SkCanvas offscreen(bitmap);
+        offscreen.clear(0);
+
+        SkPaint paint;
+        paint.setAntiAlias(true);
+        paint.setColor(SK_ColorBLUE);
+        paint.setStrokeWidth(10);
+        paint.setStyle(SkPaint::kFill_Style); // setStrokeWidth 무시됨..
+        //paint.setStyle(SkPaint::kStroke_Style); // 외곽선만 그림 (setStrokeWidth 적용됨)
+        //paint.setStyle(SkPaint::kStrokeAndFill_Style); // 외곽선과 내부 모두 그림
+        
+        offscreen.drawCircle(50, 50, 30, paint);
+        paint.setMaskFilter(SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, 10, true));
+
+        SkIPoint offset;
+        bitmap.extractAlpha(&alpha, &paint, &offset);
+        paint.setColor(SK_ColorRED);
+        canvas->drawImage(bitmap.asImage(), 0, -offset.fY, SkSamplingOptions(), &paint);
+        canvas->drawImage(alpha.asImage(), 100 + offset.fX, 0, SkSamplingOptions(), &paint);
+    }
+
+    void BitmapAlphaTest2(SkCanvas *canvas) {
+        // 마스크 필터는 경계만 흐려지고
+        // 이미지 필터는 이미지 전체가 흐려진다.
+
+        sk_sp<SkMaskFilter> maskFilter = SkMaskFilter::MakeBlur(kNormal_SkBlurStyle, 25, true);
+        //SkImageFilters::CropRect cropRect(SkRect::MakeWH(0, 100));
+        sk_sp<SkImageFilter> blurFilter = SkImageFilters::Blur(25, 25, nullptr, nullptr);
+        sk_sp<SkImage> image = getImage();
+
+        SkBitmap alpha, bitmap;
+        bitmap.allocN32Pixels(300, 300);
+        SkCanvas offscreen(bitmap);
+        offscreen.clear(0);
+        SkPaint paint;
+        paint.setAntiAlias(true);
+        paint.setColor(SK_ColorBLUE);
+        paint.setStrokeWidth(20);
+        offscreen.drawCircle(50, 50, 39, paint);
+        //offscreen.drawImage(image, 0, 0, SkSamplingOptions(), nullptr);    
+        paint.setMaskFilter(maskFilter);          
+        paint.setImageFilter(blurFilter);
+      
+        SkIPoint offset;
+        bitmap.extractAlpha(&alpha, &paint, &offset);
+        paint.setColor(SK_ColorRED);
+        canvas->drawImage(bitmap.asImage(), 0, -offset.fY, SkSamplingOptions(), &paint);
+        canvas->drawImage(alpha.asImage(), 100 + offset.fX, 0, SkSamplingOptions(), &paint);
+    }
+
+
+
+
 
     // https://github.com/google/skia/blob/main/docs/examples/Bitmap_extractAlpha.cpp
     void BitmapAlphaTest(SkCanvas *canvas) {
@@ -122,7 +189,9 @@ public:
         bitmap.allocN32Pixels(100, 100);
         // rgba를 모두 0으로 초기화
         SkCanvas offscreen(bitmap);
+        offscreen.clear(0);
         SkPaint paint;
+        
         paint.setAntiAlias(true);
         paint.setColor(SK_ColorBLUE);
         paint.setStrokeWidth(20);

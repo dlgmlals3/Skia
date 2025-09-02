@@ -86,7 +86,10 @@ void TestLibrary::TestFunc(int width, int height, sk_sp<SkSurface> surface) {
         //BitmapTest7(surface->getCanvas());
         //BitmapTest8(surface->getCanvas());
         //BitmapTest9(surface->getCanvas());
-        BitmapAlphaTest(surface->getCanvas());
+        //BitmapAlphaTest(surface->getCanvas());
+        //BitmapAlphaTest2(surface->getCanvas());
+        Bitmap_extractAlpha3(surface->getCanvas());
+
 
     } else {
         SkPictureRecorder recorder;
