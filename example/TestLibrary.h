@@ -125,7 +125,151 @@ public:
         //canvas->drawImage(bitmap.asImage(), 0, 0);
         return bitmap;
     }
-    
+
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_height.cpp
+
+
+
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_getPixels.cpp    
+    void Bitmap_getPixel(SkCanvas* canvas) {
+        SkBitmap bitmap;
+        // 픽셀 내용(또는 픽셀 버퍼)이 바뀔 때마다 달라지는 식별자예요
+        SkDebugf("alloc id %u\n", bitmap.getGenerationID());
+        bitmap.allocPixels(SkImageInfo::MakeN32(64, 64, kPremul_SkAlphaType));
+        SkDebugf("alloc id %u\n", bitmap.getGenerationID());        
+        bitmap.eraseColor(SK_ColorRED);
+        SkDebugf("erase id %u\n", bitmap.getGenerationID());
+
+
+        SkBitmap bitmap2;
+        bitmap2.setInfo(SkImageInfo::MakeN32(4, 4, kPremul_SkAlphaType));
+        bitmap2.allocPixels();
+        bitmap2.eraseColor(0x00000000);
+        void *baseAddr = bitmap2.getPixels();
+        *(SkPMColor*)baseAddr = 0xFFFFFFFF;
+
+        // getColor를 사용해서 특정 칼러값을 가져올수 있음.
+        SkDebugf("bitmap.getColor(0, 1) %c= 0x00000000\n",
+            bitmap2.getColor(0, 1)  == 0x00000000 ? '=' : '!');
+        SkDebugf("bitmap.getColor(0, 0) %c= 0xFFFFFFFF\n",
+            bitmap2.getColor(0, 0)  == 0xFFFFFFFF ? '=' : '!');
+    }
+
+    void Bitmap_getColor(SkCanvas* canvas) {
+        const int w = 4;
+        const int h = 4;
+        SkColor colors[][w] = {
+            { 0x00000000, 0x2a0e002a, 0x55380055, 0x7f7f007f },
+            { 0x2a000e2a, 0x551c1c55, 0x7f542a7f, 0xaaaa38aa },
+            { 0x55003855, 0x7f2a547f, 0xaa7171aa, 0xd4d48dd4 },
+            { 0x7f007f7f, 0xaa38aaaa, 0xd48dd4d4, 0xffffffff }
+        };
+
+        for (int y = 0; y < h; ++y) {
+            SkDebugf("(0, %d) ", y);
+            for (int x = 0; x < w; ++x) {
+                SkDebugf("0x%08x%c", colors[y][x], x == w - 1 ? '\n' : ' ');
+            }
+        }
+        // row bytes는 4 bytes(32bit) * 4개 픽셀 
+        // pixmap은 뭐지?
+        SkPixmap pixmap(SkImageInfo::MakeN32Premul(w, h), colors, w * 4);
+        SkBitmap source;
+        source.installPixels(pixmap);
+
+        for (int y = 0; y < h; ++y) {
+            SkDebugf("(0, %d) ", y);
+            for (int x = 0; x < w; ++x) {
+                SkDebugf("0x%08x%c", source.getColor(x, y), x == w - 1 ? '\n' : ' ');
+            }
+        }
+
+        canvas->scale(100, 100);
+        canvas->drawImage(source.asImage(), 0, 0);
+    }
+
+
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_getBounds.cpp
+    void Bitmap_getBounds(SkCanvas *canvas) {
+        SkIRect bounds, bounds2;
+        SkBitmap source, source1, source2;
+        sk_sp<SkImage> image = getImage();
+        source.allocPixels(SkImageInfo::MakeN32(image->width(), image->height(), kPremul_SkAlphaType));
+        image->readPixels(source.pixmap(), 0, 0);
+        // 비트맵 bound를 가져와서 offset 먹히는게 가능.
+        source.getBounds(&bounds);
+        SkDebugf("bounds : %d %d %d %d\n", bounds.fLeft, bounds.fTop, bounds.fRight, bounds.fBottom);
+                
+        SkPaint paint;
+        paint.setColor(SK_ColorRED);
+        canvas->scale(.25f, .25f);
+        bounds.offset(100, 100);
+        source.extractSubset(&source1, bounds);
+        
+        source.getBounds(&bounds2);
+        bounds2.inset(100, 100);
+            
+        /*
+            Insets SkIRect by (dx,dy).
+            If dx is positive, makes SkIRect narrower. 
+            If dx is negative, makes SkIRect wider. If dy is positive, makes SkIRect shorter. 
+            If dy is negative, makes SkIRect taller.
+            Parameters:
+            dx – offset added to fLeft and subtracted from fRight
+            dy – offset added to fTop and subtracted from fBottom
+        */
+        source.extractSubset(&source2, bounds2);
+        SkIRect r = source2.getSubset();
+        // inset의 경우 양쪽에서 안쪽으로 축소됨. (lt 늘어나고, Rb 줄어듬)  
+        SkDebugf("bounds2: %d %d %d %d\n", r.fLeft, r.fTop, r.fRight, r.fBottom);
+
+        canvas->drawImage(source.asImage(), 0, 0);
+        canvas->drawImage(source1.asImage(), 500, 0);        
+        canvas->drawImage(source2.asImage(), 1000, 0);
+    } 
+
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_extractSubset.cpp
+    void Bitmap_extractSubset(SkCanvas *canvas) {        
+        sk_sp<SkImage> image = getImage();
+        SkBitmap source;
+        source.allocPixels(SkImageInfo::MakeN32(image->width(), image->height(), kPremul_SkAlphaType));
+        image->readPixels(source.pixmap(), 0, 0);
+
+        SkIRect bounds, s;        
+        source.getBounds(&bounds);
+        SkDebugf("bounds : %d %d %d %d\n", bounds.fLeft, bounds.fTop, bounds.fRight, bounds.fBottom);
+        
+        /*
+            bool SkBitmap::extractSubset(SkBitmap *dst, const SkIRect &subset) const
+            Shares SkPixelRef with dst. Pixels are not copied; 
+            SkBitmap and dst point to the same pixels; 
+            dst bounds() are set to the intersection of subset and the original bounds().
+            subset may be larger than bounds(). Any area outside of bounds() is ignored.
+            Any contents of dst are discarded.
+            Return false if: - dst is nullptr - SkPixelRef is nullptr - subset does not intersect bounds()
+            Parameters:
+            dst – SkBitmap set to subset
+            subset – rectangle of pixels to reference
+        */
+        canvas->drawImage(source.asImage(), 0, 0);
+        SkBitmap subset;
+        for (int left : {-100, 0, 100, 1000}) {
+            for (int right : {0, 100, 1000}) {
+                SkIRect b = SkIRect::MakeLTRB(left, 0, right, 200);
+                bool success = source.extractSubset(&subset, b);
+                // 겹치는 부분이 없으면 false 리턴하고 subset는 비어있음. !!
+                SkDebugf("subset : %s : %4d %4d %4d %4d\n", 
+                    success ? "true" : "false",
+                    b.fLeft, b.fTop, b.fRight, b.fBottom);
+                canvas->drawImage(subset.asImage(), 0, 0);
+            }
+        }
+
+    }
+
+
+
+    // https://github.com/google/skia/blob/main/docs/examples/Bitmap_extractAlpha_3.cpp
     void Bitmap_extractAlpha3(SkCanvas *canvas) {
         SkBitmap alpha, bitmap;
         bitmap.allocN32Pixels(200, 200);
@@ -178,10 +322,6 @@ public:
         canvas->drawImage(bitmap.asImage(), 0, -offset.fY, SkSamplingOptions(), &paint);
         canvas->drawImage(alpha.asImage(), 100 + offset.fX, 0, SkSamplingOptions(), &paint);
     }
-
-
-
-
 
     // https://github.com/google/skia/blob/main/docs/examples/Bitmap_extractAlpha.cpp
     void BitmapAlphaTest(SkCanvas *canvas) {
